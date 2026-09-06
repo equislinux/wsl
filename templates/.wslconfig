@@ -1,0 +1,34 @@
+# .wslconfig - global WSL 2 settings, applied to every distribution.
+# Host-side file on Windows: %UserProfile%\.wslconfig
+# (C:\Users\<you>\.wslconfig). There is no default file; create it if needed.
+# Only affects WSL 2 distributions.
+# After editing, restart WSL so changes apply:  wsl --shutdown
+# Reference: https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+
+[wsl2]
+
+# RAM available to the WSL 2 VM. Default: 50% of the physical memory.
+# X Linux for WSL is headless, so a smaller value leaves more RAM to Windows.
+# memory=4GB
+
+# Logical processors available to the WSL 2 VM. Default: all logical CPUs.
+# processors=4
+
+# GUI application support (WSLg). X Linux for WSL ships NO GUI and NO Hyprland
+# or compositor, so WSLg is not used here. Keep GUI apps disabled to save
+# resources; set to true only if you need to run Linux GUI applications.
+guiApplications=false
+
+# Swap for the WSL 2 VM. Use 0 to disable the swap file.
+# swap=2GB
+
+[experimental]
+
+# Automatic memory reclamation on Windows 11. Values: disabled | gradual |
+# dropCache. "dropCache" reclaims cached memory immediately when possible.
+autoMemoryReclaim=dropCache
+
+# Newly created VHDs are sparse, so each distribution only uses the disk it
+# actually fills. Apply on the host before the first import so the X Linux
+# VHD is created sparse.
+sparseVhd=true
