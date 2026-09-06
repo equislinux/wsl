@@ -4,6 +4,12 @@
 # Only affects WSL 2 distributions.
 # After editing, restart WSL so changes apply:  wsl --shutdown
 # Reference: https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+#
+# This file is an EXAMPLE. Everything below is commented out except the two
+# options recommended for a headless X Linux distribution. Windows also offers
+# a "WSL Settings" application that edits the same settings. install.ps1 only
+# prints guidance and never overwrites an existing .wslconfig; use its
+# -CreateWslConfig switch to place a starter file when none exists.
 
 [wsl2]
 
@@ -15,17 +21,22 @@
 # processors=4
 
 # GUI application support (WSLg). X Linux for WSL ships NO GUI and NO Hyprland
-# or compositor, so WSLg is not used here. Keep GUI apps disabled to save
+# or compositor, so WSLg is not used. Keep GUI apps disabled to save
 # resources; set to true only if you need to run Linux GUI applications.
 guiApplications=false
 
 # Swap for the WSL 2 VM. Use 0 to disable the swap file.
 # swap=2GB
 
+# Host networking modes for WSL 2 (nat, mirrored, ...). Default is NAT; leave
+# it alone unless you need mirrored networking.
+# networkingMode=mirrored
+
 [experimental]
 
 # Automatic memory reclamation on Windows 11. Values: disabled | gradual |
-# dropCache. "dropCache" reclaims cached memory immediately when possible.
+# dropCache. "dropCache" reclaims cached memory immediately when possible and
+# is the default on recent WSL builds.
 autoMemoryReclaim=dropCache
 
 # Newly created VHDs are sparse, so each distribution only uses the disk it

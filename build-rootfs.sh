@@ -7,6 +7,14 @@
 # installed. The result is a headless system (no GUI, no Hyprland/compositor)
 # that boots systemd and is meant to be imported with `wsl --import`.
 #
+# Import references (official WSL docs):
+#   - wsl --import <Name> <InstallLocation> <Tarball> --version 2
+#     https://learn.microsoft.com/en-us/windows/wsl/basic-commands
+#   - /etc/wsl.conf and .wslconfig keys used in templates/
+#     https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+# systemd under WSL needs the Microsoft Store build of WSL and Windows 11
+# (or Windows Server 2022).
+#
 # Requires:
 #   - an Arch Linux (or Arch-based) host, run as root:
 #         sudo ./build-rootfs.sh
@@ -111,7 +119,8 @@ if [[ "$DRY" == "1" ]]; then
   10. tar -C "\$WORK" --numeric-owner --no-acls --no-xattrs --no-selinux \\
          --one-file-system -cf - . | gzip -9n > '${TARBALL}'
       (root-owned files, no ACLs/xattrs, deterministic gzip header)
-  11. sha256sum '${TARBALL}' > '${SHA_FILE}' and print the 'wsl --import' command.
+  11. sha256sum '${TARBALL}' > '${SHA_FILE}' and print the 'wsl --import
+      ... --version 2' command (install.ps1 automates that on Windows).
   12. Cleanup: unmount and remove the staging dir (trap on EXIT).
 PLAN
     exit 0
@@ -227,12 +236,17 @@ cat <<SUMMARY
   SHA256  : ${SUM}
             (also saved to ${SHA_FILE})
 
-Import it from PowerShell (copy the tarball to a Windows path first):
-  wsl --import ${NAME} C:\\WSL\\${NAME} .\\${NAME}-wsl-rootfs.tar.gz
+Import it from PowerShell (copy the tarball to a Windows path first).
+The Windows-side installer install.ps1 does this check + import for you:
+  powershell -File install.ps1 -Rootfs .\\${NAME}-wsl-rootfs.tar.gz
+
+Manual equivalent:
+  wsl --import ${NAME} C:\\WSL\\${NAME} .\\${NAME}-wsl-rootfs.tar.gz --version 2
   wsl --set-default ${NAME}
   wsl -d ${NAME}
 
 The first session starts as root. For user setup, docs and templates see:
   - docs/en/import.md  (or docs/es/import.md) in this repository
+  - install.ps1 in this repository (Windows importer)
   - xlnux/wsl-scripts for user provisioning (default user, packages, shell)
 SUMMARY
