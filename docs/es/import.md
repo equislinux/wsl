@@ -126,12 +126,12 @@ de configuracion; `wsl --shutdown` fuerza el reinicio.
 ## 4. Configurar tu usuario
 
 El aprovisionamiento de usuario lo gestiona
-[xlnux/wsl-scripts](https://github.com/xlnux/wsl-scripts). Clonalo donde puedan
+[equislinux/wsl-scripts](https://github.com/equislinux/wsl-scripts). Clonalo donde puedan
 leerlo tanto root como el futuro usuario y ejecuta el instalador guiado (dos
 partes):
 
 ```bash
-git clone https://github.com/xlnux/wsl-scripts /opt/x-wsl-scripts
+git clone https://github.com/equislinux/wsl-scripts /opt/x-wsl-scripts
 cd /opt/x-wsl-scripts
 ./install.sh            # Parte 1 (sistema), como root
 ```

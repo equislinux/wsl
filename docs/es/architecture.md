@@ -1,10 +1,10 @@
 # Arquitectura
 
 Este documento explica como se ensambla la experiencia de X Linux en WSL entre
-los repositorios de la organizacion [xlnux](https://github.com/xlnux) y como
+los repositorios de la organizacion [equislinux](https://github.com/equislinux) y como
 cada pieza se corresponde con la documentacion oficial de WSL
 (https://learn.microsoft.com/windows/wsl). Es la contrapartida de
-`docs/architecture.md` del repositorio `xlnux/wsl-scripts`, vista desde el lado
+`docs/architecture.md` del repositorio `equislinux/wsl-scripts`, vista desde el lado
 de la distro/importacion.
 
 ## Flujo completo
@@ -13,7 +13,7 @@ X Linux para WSL es headless (solo terminal). Dos repositorios mas el host
 Windows producen una distribucion corriendo y aprovisionada:
 
 ```
-  xlnux/wsl                  xlnux/wsl            xlnux/wsl-scripts
+  equislinux/wsl                  equislinux/wsl            equislinux/wsl-scripts
   (host Arch)                (host Windows)       (dentro de la distro)
   ----------------           ----------------     ----------------
   1. build-rootfs.sh         2. install.ps1       3. install.sh (root)
@@ -102,7 +102,7 @@ VHD de la distribucion (`ext4.vhdx`); el importador usa por defecto una ruta
 por usuario para no requerir permisos de administrador. Los pasos equivalentes
 de `install.ps1` son los comandos manuales de `docs/en/import.md`. En caso de
 exito ejecuta `wsl --set-default <Nombre>` (opcional) e imprime los siguientes
-pasos para el setup de `xlnux/wsl-scripts`.
+pasos para el setup de `equislinux/wsl-scripts`.
 
 ## Notas de build
 
@@ -111,7 +111,7 @@ ACLs, sin xattrs, owners numericos). WSL aporta su propio kernel y su red, asi
 que los paquetes `linux`, `linux-firmware`, `networkmanager` y `openssh` se
 excluyen a proposito. El resultado es un sistema headless que arranca con
 systemd al importarse; el aprovisionamiento de usuario queda en manos de
-`xlnux/wsl-scripts`.
+`equislinux/wsl-scripts`.
 
 ## Modelo de ejecucion
 

@@ -9,7 +9,7 @@
       2. Imports the rootfs with:  wsl --import <Name> <InstallDir> <Rootfs> --version 2
       3. Makes the distribution the default (wsl --set-default), optional.
       4. Prints guidance for the host-side .wslconfig file (never overwrites it).
-      5. Prints the next steps to finish the setup with xlnux/wsl-scripts.
+      5. Prints the next steps to finish the setup with equislinux/wsl-scripts.
 
     The distribution must not already be registered under the same name.
 
@@ -268,7 +268,7 @@ Write-Host  @"
      them, for example /opt/x-wsl-scripts, and run the system stage (the
      session is root, so no sudo is needed):
 
-         git clone https://github.com/xlnux/wsl-scripts /opt/x-wsl-scripts
+         git clone https://github.com/equislinux/wsl-scripts /opt/x-wsl-scripts
          cd /opt/x-wsl-scripts
          ./install.sh
 

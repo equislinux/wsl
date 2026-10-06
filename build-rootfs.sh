@@ -248,5 +248,5 @@ Manual equivalent:
 The first session starts as root. For user setup, docs and templates see:
   - docs/en/import.md  (or docs/es/import.md) in this repository
   - install.ps1 in this repository (Windows importer)
-  - xlnux/wsl-scripts for user provisioning (default user, packages, shell)
+  - equislinux/wsl-scripts for user provisioning (default user, packages, shell)
 SUMMARY

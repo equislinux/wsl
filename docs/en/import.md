@@ -123,11 +123,11 @@ configuration change is picked up; `wsl --shutdown` forces the restart.
 ## 4. Configure your user
 
 User provisioning is handled by
-[xlnux/wsl-scripts](https://github.com/xlnux/wsl-scripts). Clone it where both
+[equislinux/wsl-scripts](https://github.com/equislinux/wsl-scripts). Clone it where both
 root and the future user can read it and run the guided installer (two parts):
 
 ```bash
-git clone https://github.com/xlnux/wsl-scripts /opt/x-wsl-scripts
+git clone https://github.com/equislinux/wsl-scripts /opt/x-wsl-scripts
 cd /opt/x-wsl-scripts
 ./install.sh            # Part 1 (system), as root
 ```

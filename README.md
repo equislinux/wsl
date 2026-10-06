@@ -1,6 +1,6 @@
 # X Linux for WSL
 
-[X Linux](https://github.com/xlnux/x) is an Arch-based Linux distribution. This
+[X Linux](https://github.com/equislinux/x) is an Arch-based Linux distribution. This
 repository is the **WSL side of the distro**: it builds and hosts the minimal,
 importable root filesystem for Windows Subsystem for Linux (WSL), ships the WSL
 configuration templates and provides the Windows-side importer and the import
@@ -9,7 +9,7 @@ documentation.
 The delivered system is **headless**: no GUI, no Hyprland/compositor, no desktop
 packages. It boots `systemd` under WSL and is meant to be used from the
 terminal, either as-is or as the base that
-[xlnux/wsl-scripts](https://github.com/xlnux/wsl-scripts) turns into a
+[equislinux/wsl-scripts](https://github.com/equislinux/wsl-scripts) turns into a
 provisioned X Linux user environment.
 
 ## Flow
@@ -18,7 +18,7 @@ The build, the import and the first-run setup are handled by two repositories
 used in order:
 
 ```
-xlnux/wsl                     xlnux/wsl-scripts
+equislinux/wsl                     equislinux/wsl-scripts
 --------------                --------------------
 build-rootfs.sh      ->       import on Windows (install.ps1)
 (minimal Arch rootfs)         then, inside the distro:
@@ -35,13 +35,13 @@ WSL documentation.
 
 | Repository | Role |
 |------------|------|
-| `xlnux/wsl` | **This repo**: minimal importable Arch rootfs for WSL (`build-rootfs.sh`), `wsl.conf`/`.wslconfig` templates, `install.ps1` (Windows importer) and import docs. |
-| `xlnux/wsl-scripts` | User setup and provisioning on top of the imported rootfs (default user, packages, shell, environment). |
-| `xlnux/x` | The distro itself: archiso profile, ISO and install flow. |
-| `xlnux/scripts` | Provisioning payload and `x` CLI of the full system. |
+| `equislinux/wsl` | **This repo**: minimal importable Arch rootfs for WSL (`build-rootfs.sh`), `wsl.conf`/`.wslconfig` templates, `install.ps1` (Windows importer) and import docs. |
+| `equislinux/wsl-scripts` | User setup and provisioning on top of the imported rootfs (default user, packages, shell, environment). |
+| `equislinux/x` | The distro itself: archiso profile, ISO and install flow. |
+| `equislinux/scripts` | Provisioning payload and `x` CLI of the full system. |
 
 The build intentionally stops at a bootable, systemd-managed root filesystem.
-User creation and configuration live in `xlnux/wsl-scripts`, which consumes
+User creation and configuration live in `equislinux/wsl-scripts`, which consumes
 this rootfs; the initial `[user] default` of `/etc/wsl.conf` is `root` because
 an imported distribution always boots as root until a real user is provisioned.
 
@@ -89,7 +89,7 @@ wsl --set-default x
 wsl -d x
 ```
 
-After the import, finish the setup with `xlnux/wsl-scripts` (run
+After the import, finish the setup with `equislinux/wsl-scripts` (run
 `./install.sh` as root, relaunch, then run it again as your user). See
 `docs/en/import.md` for the full walkthrough and requirements.
 
@@ -124,6 +124,6 @@ After the import, finish the setup with `xlnux/wsl-scripts` (run
 
 Under active development. The importable rootfs, the configuration templates,
 the Windows importer and the documentation are in place; user provisioning and
-the friendly first-run setup live in `xlnux/wsl-scripts`. Progress and
+the friendly first-run setup live in `equislinux/wsl-scripts`. Progress and
 decisions for the WSL initiative live in the workspace `ROADMAP.md` /
 `DECISIONS.md`.
