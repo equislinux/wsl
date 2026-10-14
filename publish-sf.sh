@@ -21,7 +21,9 @@ set -euo pipefail
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 SF_USER="${SF_USER:-xscriptor}"
-SF_KEY="${SF_KEY:-$HOME/.ssh/id_ed25519_sourceforge}"
+# When run via sudo, HOME is root's; default to the invoking user's SSH key.
+INVOKER_HOME="$(getent passwd "${SUDO_USER:-$(id -un)}" | cut -d: -f6)"
+SF_KEY="${SF_KEY:-${INVOKER_HOME:-$HOME}/.ssh/id_ed25519_sourceforge}"
 SF_PATH="${SF_PATH:-/home/frs/project/equislinux/wsl}"
 SF_HOST="frs.sourceforge.net"
 
@@ -45,6 +47,11 @@ PUBLIC_URL="https://sourceforge.net/projects/equislinux/files/wsl/x-wsl-rootfs.t
 
 if [[ $DRY -eq 0 && $SKIP_BUILD -eq 0 && $EUID -ne 0 ]]; then
     die "run as root to build (sudo $0), or use --skip-build / --dry-run"
+fi
+
+# Fail before the (slow) build if the upload key is missing.
+if [[ $DRY -eq 0 && ! -f "$SF_KEY" ]]; then
+    die "SSH key not found: $SF_KEY (set SF_KEY)"
 fi
 
 # ---------------------------------------------------------------------------
