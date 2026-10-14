@@ -120,6 +120,22 @@ After the import, finish the setup with `equislinux/wsl-scripts` (run
   build environment, so it is kept deliberately simple and must be reviewed on
   a Windows host before first use (see its header comment).
 
+## Publishing
+
+The rootfs is published as a GitHub release and mirrored to SourceForge FRS
+(`files/wsl/`):
+
+```bash
+sudo ./publish-sf.sh              # build + checksum + upload + verify
+sudo ./publish-sf.sh --skip-build # upload an existing out/ tarball
+./publish-sf.sh --dry-run         # print the plan (no root needed)
+```
+
+The script never deletes remote files and only touches the `wsl/` FRS
+directory. Defaults: `SF_USER=xscriptor`,
+`SF_KEY=~/.ssh/id_ed25519_sourceforge`,
+`SF_PATH=/home/frs/project/equislinux/wsl`.
+
 ## Status
 
 Under active development. The importable rootfs, the configuration templates,
