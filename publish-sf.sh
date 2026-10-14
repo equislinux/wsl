@@ -68,10 +68,8 @@ fi
 
 if [[ $DRY -eq 0 ]]; then
     [[ -f "$TARBALL" ]] || die "missing artifact: $TARBALL"
-    if [[ $SKIP_BUILD -eq 1 || ! -f "$SHA_FILE" ]]; then
-        log "writing checksum ..."
-        ( cd "$(dirname "$TARBALL")" && sha256sum "$(basename "$TARBALL")" > "$(basename "$SHA_FILE")" )
-    fi
+    log "writing checksum (relative filename, verifiable with sha256sum -c) ..."
+    ( cd "$(dirname "$TARBALL")" && sha256sum "$(basename "$TARBALL")" > "$(basename "$SHA_FILE")" )
 fi
 
 # ---------------------------------------------------------------------------

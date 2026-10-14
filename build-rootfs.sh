@@ -119,8 +119,9 @@ if [[ "$DRY" == "1" ]]; then
   10. tar -C "\$WORK" --numeric-owner --no-acls --no-xattrs --no-selinux \\
          --one-file-system -cf - . | gzip -9n > '${TARBALL}'
       (root-owned files, no ACLs/xattrs, deterministic gzip header)
-  11. sha256sum '${TARBALL}' > '${SHA_FILE}' and print the 'wsl --import
-      ... --version 2' command (install.ps1 automates that on Windows).
+  11. sha256sum '<name>' > '<SHA_FILE>' (relative filename) and print the
+      'wsl --import ... --version 2' command (install.ps1 automates that on
+      Windows).
   12. Cleanup: unmount and remove the staging dir (trap on EXIT).
 PLAN
     exit 0
@@ -224,7 +225,7 @@ tar -C "$WORK" \
     -cf - . | gzip -9n > "$TARBALL"
 
 TARBALL_SIZE="$(du -h "$TARBALL" | awk '{print $1}')"
-sha256sum "$TARBALL" > "$SHA_FILE"
+( cd "$(dirname "$TARBALL")" && sha256sum "$(basename "$TARBALL")" > "$(basename "$SHA_FILE")" )
 SUM="$(awk '{print $1}' "$SHA_FILE")"
 
 log "rootfs build complete"
