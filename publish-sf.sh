@@ -99,15 +99,25 @@ rsync -e "${RSH[*]}" --partial --info=progress2 \
 # ---------------------------------------------------------------------------
 # 3. Verify the public URL (SourceForge needs a moment to list it)
 # ---------------------------------------------------------------------------
-log "verifying public URL (may take a moment) ..."
-for i in 1 2 3 4 5 6; do
+log "verifying public URL (SourceForge may take a few minutes to index new files) ..."
+for i in 1 2 3 4 5 6 7 8 9 10; do
     code="$(curl -sI -L --max-time 30 -o /dev/null -w '%{http_code}' "$PUBLIC_URL" || true)"
     if [[ "$code" == "200" ]]; then
         log "OK: $PUBLIC_URL (HTTP $code)"
         log "done."
         exit 0
     fi
-    log "attempt $i: HTTP $code (retrying in 20s)"
-    sleep 20
+    log "attempt $i: HTTP $code (retrying in 30s)"
+    sleep 30
 done
-die "upload finished but the public URL did not return 200 yet; check https://sourceforge.net/projects/equislinux/files/wsl/"
+
+# Fallback: SourceForge can take longer than the retry window to index brand-new
+# files even though the upload itself succeeded. Confirm on the FRS before failing.
+listing="$(printf 'ls %s\n' "$SF_PATH" | timeout 60 sftp -b - -i "$SF_KEY" -o BatchMode=yes "$SF_USER@$SF_HOST" 2>/dev/null || true)"
+if grep -q "$(basename "$TARBALL")" <<<"$listing"; then
+    log "warning: file is present on the FRS but the public URL is not resolving yet"
+    log "(SourceForge indexing). Upload OK; check again in a few minutes:"
+    log "  $PUBLIC_URL"
+    exit 0
+fi
+die "upload did not complete; check https://sourceforge.net/projects/equislinux/files/wsl/"
