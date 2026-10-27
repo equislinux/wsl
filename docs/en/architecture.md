@@ -18,10 +18,12 @@ host produce a running, provisioned distribution:
   ----------------           ----------------     ----------------
   1. build-rootfs.sh         2. install.ps1       3. install.sh (root)
      pacstrap of a minimal      wsl --import         system stage:
-     Arch rootfs, with a         --version 2          locale, keymap,
-     default /etc/wsl.conf       (WSL 2)              timezone, tools,
-     (systemd on, [user]         wsl --set-default    sudo user; pins
-     default=root, [time])                            [user] default
+     Arch rootfs + the X         --version 2          locale, keymap,
+     identity (x-release         (WSL 2)              timezone, tools,
+     from [x]), with a           wsl --set-default    sudo user, [x] +
+     default /etc/wsl.conf                            x-release if absent;
+     (systemd on, [user]                              pins [user] default
+     default=root, [time])
                                   4. exit, relaunch
         out/x-wsl-rootfs.tar.gz    5. install.sh (user)
                                           user stage: shell, env, folders
@@ -100,6 +102,25 @@ administrator rights are needed. The equivalent `install.ps1` steps are the
 manual commands in `docs/en/import.md`. On success it runs
 `wsl --set-default <Name>` (optional) and prints the next steps for the setup
 in `equislinux/wsl-scripts`.
+
+## X Linux identity
+
+The rootfs is bootstrapped from the stock Arch repositories, so on its own it
+would report itself as Arch Linux (`/usr/lib/os-release` comes from the
+`filesystem` package). `build-rootfs.sh` closes that gap: it appends the signed
+`[x]` repository to `/etc/pacman.conf` (key pinned by fingerprint) and installs
+`x-release`, the package that owns `/usr/lib/os-release` and the branding hooks.
+
+`x-release` is `arch=('any')` and its GRUB hook only acts when
+`/etc/default/grub` exists, so the headless rootfs stays clean; wallpapers live
+in the separate `x-wallpapers` package, which WSL does not install (optdepend).
+Because `[x]` stays enabled, a plain `pacman -Syu` keeps the identity updated
+and exposes the rest of the X packages. `X_WSL_BRANDING=0` skips the layer for
+offline or custom builds (the distribution then reports Arch Linux).
+
+For distributions imported before this existed, the `wsl-scripts` system stage
+applies the same steps (`x_repo_enable` + `pacman -S x-release`), so a rebuild
+is not required.
 
 ## Build notes
 

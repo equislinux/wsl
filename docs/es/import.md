@@ -123,6 +123,19 @@ wsl --shutdown
 WSL tarda unos 8 segundos tras cerrar la ultima instancia en recoger un cambio
 de configuracion; `wsl --shutdown` fuerza el reinicio.
 
+Comprueba que la distribucion se identifica como X Linux (lo aporta el paquete
+`x-release`, instalado en el build desde el repositorio firmado `[x]`):
+
+```bash
+grep '^PRETTY_NAME=' /etc/os-release
+# imprime: PRETTY_NAME="X Linux"
+```
+
+Si imprime `Arch Linux`, la imagen se construyo con `X_WSL_BRANDING=0` o la
+capa `[x]` fallo; la etapa de sistema de `wsl-scripts` lo instala por ti
+(habilita `[x]`, confia en la clave y ejecuta `pacman -S x-release`).
+
+
 ## 4. Configurar tu usuario
 
 El aprovisionamiento de usuario lo gestiona

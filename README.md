@@ -12,6 +12,13 @@ terminal, either as-is or as the base that
 [equislinux/wsl-scripts](https://github.com/equislinux/wsl-scripts) turns into a
 provisioned X Linux user environment.
 
+The rootfs is **X Linux, not plain Arch**: the build enables the signed `[x]`
+repository and installs `x-release`, so `/etc/os-release` reports X Linux,
+`fastfetch`/`xfetch` show the distro name, and a plain `pacman -Syu` keeps the
+identity updated. Wallpapers live in the separate `x-wallpapers` package, which
+the headless rootfs does not install. Use `X_WSL_BRANDING=0` to skip the X layer
+(offline or custom builds).
+
 ## Flow
 
 The build, the import and the first-run setup are handled by two repositories
@@ -21,8 +28,8 @@ used in order:
 equislinux/wsl                     equislinux/wsl-scripts
 --------------                --------------------
 build-rootfs.sh      ->       import on Windows (install.ps1)
-(minimal Arch rootfs)         then, inside the distro:
-                              1. ./install.sh as root  (system stage)
+(minimal Arch rootfs +        then, inside the distro:
+ X identity from [x])         1. ./install.sh as root  (system stage)
                               2. exit, relaunch
                               3. ./install.sh as user  (user stage)
 ```
