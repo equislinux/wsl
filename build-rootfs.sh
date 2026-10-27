@@ -19,6 +19,7 @@
 #   - an Arch Linux (or Arch-based) host, run as root:
 #         sudo ./build-rootfs.sh
 #   - arch-install-scripts (pacstrap, arch-chroot), tar, gzip, coreutils
+#   - curl and gpg when the X layer is enabled (X_WSL_BRANDING=1)
 #   - root privileges for the pacstrap/chroot mounts; not a restricted container
 #
 # Environment overrides (pass them inline to sudo):
@@ -42,6 +43,15 @@ WSL_USER="${X_WSL_USER:-root}"
 LOCALE="${X_WSL_LOCALE:-en_US.UTF-8}"
 OUT_DIR="${X_WSL_OUT_DIR:-${REPO_DIR}/out}"
 DRY="${X_DRY:-0}"
+
+# X Linux package layer. The rootfs is bootstrapped from the stock Arch
+# repositories; this repo installs x-release (identity package) from the
+# signed [x] repository so the distribution reports "X Linux" and keeps
+# tracking updates with a plain `pacman -Syu`.
+X_WSL_BRANDING="${X_WSL_BRANDING:-1}"
+X_REPO_URL="${X_REPO_URL:-https://equislinux.github.io/x-repo/repo/x86_64}"
+X_REPO_KEY_FPR="${X_REPO_KEY_FPR:-D6C5084942318609F12B2F490C860E4E6A638BBB}"
+X_WSL_PACKAGES=(x-release)
 
 TARBALL="${OUT_DIR}/${NAME}-wsl-rootfs.tar.gz"
 SHA_FILE="${TARBALL}.sha256"
@@ -75,8 +85,11 @@ warn() { printf '%s[x-wsl]%s %s\n' "$C_YELLOW" "$C_OFF" "$*" >&2; }
 die()  { printf '%s[x-wsl]%s error: %s\n' "$C_RED" "$C_OFF" "$*" >&2; exit 1; }
 
 require_tools() {
-    local tool
-    for tool in pacstrap arch-chroot tar gzip sha256sum sed; do
+    local tool tools=(pacstrap arch-chroot tar gzip sha256sum sed)
+    if [[ "$X_WSL_BRANDING" == "1" ]]; then
+        tools+=(curl gpg)
+    fi
+    for tool in "${tools[@]}"; do
         command -v "$tool" >/dev/null 2>&1 || die "required tool not found: $tool (is arch-install-scripts installed?)"
     done
 }
@@ -96,16 +109,17 @@ if [[ "$DRY" == "1" ]]; then
   Tarball             : ${TARBALL}
   Checksums file      : ${SHA_FILE}
   Packages (pacstrap) : ${PACKAGES[*]}
+  X Linux layer       : $([[ "$X_WSL_BRANDING" == "1" ]] && printf '%s (from %s)' "${X_WSL_PACKAGES[*]}" "$X_REPO_URL" || printf 'disabled (X_WSL_BRANDING=0)')
 
   Steps:
    1. Check root privileges and required tools
       (pacstrap, arch-chroot, tar, gzip, sha256sum, sed).
    2. mkdir -p '${OUT_DIR}'
       WORK=\$(mktemp -d '${OUT_DIR}/.work.XXXXXX')          (rootfs staging dir)
-   3. pacstrap -K -c "\$WORK" ${PACKAGES[*]}
+   3. pacstrap -K -c -C <temp config> "\$WORK" ${PACKAGES[*]}
       (-K: init an empty pacman keyring in the target; -c: reuse the host
-       package cache. The host mirrorlist is copied into the target so pacman
-       works after import.)
+       package cache; -C: a copy of the host config with an empty HookDir so
+       the build host hooks are not run against the staged rootfs.)
    4. mount --bind "\$WORK" "\$WORK"                         (arch-chroot needs a mountpoint)
    5. cp templates/wsl.conf -> "\$WORK/etc/wsl.conf"         (chmod 0644)
       [user] default set to '${WSL_USER}' in /etc/wsl.conf.
@@ -114,15 +128,24 @@ if [[ "$DRY" == "1" ]]; then
    6. Write "\$WORK/etc/locale.gen" (enable '${LOCALE}') and
       "\$WORK/etc/locale.conf" (LANG=${LOCALE}).
    7. arch-chroot "\$WORK" locale-gen
-   8. arch-chroot "\$WORK" pacman-key --populate archlinux   (best effort)
-   9. Remove pacman package cache: find "\$WORK/var/cache/pacman/pkg" -delete
-  10. tar -C "\$WORK" --numeric-owner --no-acls --no-xattrs --no-selinux \\
+   8. Recreate the pacman keyring inside the target
+      (rm -rf "\$WORK/etc/pacman.d/gnupg"; pacman-key --init) and run
+      pacman-key --populate archlinux (best effort).
+   9. X Linux layer (skip with X_WSL_BRANDING=0):
+      - append [x] (SigLevel = Required, Server = ${X_REPO_URL}) to
+        "\$WORK/etc/pacman.conf" unless already present
+      - curl ${X_REPO_URL}/signing.pub -> "\$WORK/etc/pacman.d/x-repo.pub",
+        verify fingerprint ${X_REPO_KEY_FPR}
+      - arch-chroot "\$WORK" pacman-key --add ... && --lsign-key <fpr>
+      - arch-chroot "\$WORK" pacman -Sy --noconfirm ${X_WSL_PACKAGES[*]}
+  10. Remove pacman package cache: find "\$WORK/var/cache/pacman/pkg" -delete
+  11. tar -C "\$WORK" --numeric-owner --no-acls --no-xattrs --no-selinux \\
          --one-file-system -cf - . | gzip -9n > '${TARBALL}'
       (root-owned files, no ACLs/xattrs, deterministic gzip header)
-  11. sha256sum '<name>' > '<SHA_FILE>' (relative filename) and print the
+  12. sha256sum '<name>' > '<SHA_FILE>' (relative filename) and print the
       'wsl --import ... --version 2' command (install.ps1 automates that on
       Windows).
-  12. Cleanup: unmount and remove the staging dir (trap on EXIT).
+  13. Cleanup: unmount and remove the staging dir (trap on EXIT).
 PLAN
     exit 0
 fi
@@ -142,12 +165,16 @@ if [[ ! -f "$WSL_CONF_SRC" ]]; then
 fi
 
 WORK=""
+BOOTSTRAP_CONF=""
+NO_HOOKS_DIR=""
 cleanup() {
     local rc=$?
     if [[ -n "$WORK" && -d "$WORK" ]]; then
         umount -R "$WORK" >/dev/null 2>&1 || umount -l "$WORK" >/dev/null 2>&1 || true
         rm -rf -- "$WORK"
     fi
+    [[ -n "$BOOTSTRAP_CONF" ]] && rm -f -- "$BOOTSTRAP_CONF"
+    [[ -n "$NO_HOOKS_DIR" ]] && rm -rf -- "$NO_HOOKS_DIR"
     exit "$rc"
 }
 trap cleanup EXIT
@@ -164,8 +191,22 @@ if ! mountpoint -q "$WORK"; then
 fi
 
 # 1. Bootstrap the root filesystem.
+#
+# pacman with -r executes hooks chrooted into the target but reads their
+# definitions from the *host* HookDir (it is not rebased), so a build host
+# with x-release installed would inject its branding/GRUB hooks into the
+# staged rootfs. Bootstrap with an empty HookDir: package scriptlets still
+# run (that is what applies the branding), post-transaction hooks are not
+# needed here.
 log "bootstrapping rootfs with pacstrap"
-pacstrap -K -c "$WORK" "${PACKAGES[@]}"
+NO_HOOKS_DIR="$(mktemp -d -- "${OUT_DIR}/.nohooks.XXXXXX")"
+BOOTSTRAP_CONF="$(mktemp -- "${OUT_DIR}/.pacman.conf.XXXXXX")"
+# The directive must live in [options]: the host config ends with the [x]
+# repository section, so appending at the end would be ignored.
+awk -v dir="$NO_HOOKS_DIR" \
+    '!done && /^\[options\]/ {print; print "HookDir = " dir; done=1; next} {print}' \
+    /etc/pacman.conf >"$BOOTSTRAP_CONF"
+pacstrap -K -c -C "$BOOTSTRAP_CONF" "$WORK" "${PACKAGES[@]}"
 
 # 2. Per-distribution WSL settings. The [user] default is 'root' unless an
 #    existing user is requested through X_WSL_USER.
@@ -203,17 +244,72 @@ arch-chroot "$WORK" locale-gen
 
 # 4. Trust the Arch Linux master keys so pacman works immediately after import.
 if [[ "${X_KEYRING_POPULATE:-1}" == "1" ]]; then
-    log "populating pacman keyring (archlinux)"
+    log "initializing and populating the pacman keyring (archlinux)"
+    # pacstrap -K initializes the keyring with the *host* gpg, whose agent
+    # state does not carry into the chroot (archlinux-keyring's post_install
+    # cannot locally sign, and the secret key would be host-generated anyway).
+    # Recreate it inside the target so the signing key is generated there.
+    rm -rf -- "$WORK/etc/pacman.d/gnupg"
+    if ! arch-chroot "$WORK" pacman-key --init; then
+        warn "pacman-key --init failed; package signature checks will not work inside WSL"
+    fi
     if ! arch-chroot "$WORK" pacman-key --populate archlinux; then
         warn "keyring populate failed; run 'pacman-key --init && pacman-key --populate archlinux' inside WSL"
     fi
 fi
 
-# 5. Drop the package cache to keep the tarball small.
+# 5. X Linux layer: trust the signed [x] repository and install the identity
+#    package. Without it the rootfs reports itself as Arch Linux (the stock
+#    /usr/lib/os-release from the filesystem package) and `pacman -Syu` would
+#    never deliver X branding. x-release is arch=('any') and has no GUI or
+#    GRUB dependencies (its GRUB hook is a no-op without /etc/default/grub).
+if [[ "$X_WSL_BRANDING" == "1" ]]; then
+    log "enabling the [x] repository (${X_REPO_URL})"
+    if ! grep -q '^\[x\]' "$WORK/etc/pacman.conf"; then
+        cat >> "$WORK/etc/pacman.conf" <<EOF
+
+[x]
+# Trusted by build-rootfs.sh / wsl-scripts (/etc/pacman.d/x-repo.pub).
+SigLevel = Required
+Server = ${X_REPO_URL}
+EOF
+    fi
+
+    X_REPO_KEY_FILE="$WORK/etc/pacman.d/x-repo.pub"
+    if [[ ! -f "$X_REPO_KEY_FILE" ]]; then
+        log "fetching the [x] signing key"
+        curl -fsSL "${X_REPO_URL%/}/signing.pub" -o "$X_REPO_KEY_FILE" ||
+            die "could not download ${X_REPO_URL%/}/signing.pub (offline? set X_WSL_BRANDING=0 to skip the X layer)"
+    fi
+    chmod 0644 "$X_REPO_KEY_FILE"
+
+    KEY_FPR="$(gpg --with-colons --show-keys "$X_REPO_KEY_FILE" 2>/dev/null | awk -F: '/^fpr:/{print $10; exit}')"
+    [[ "$KEY_FPR" == "$X_REPO_KEY_FPR" ]] ||
+        die "the [x] key fingerprint is '${KEY_FPR:-none}', expected '${X_REPO_KEY_FPR}'"
+
+    log "trusting the [x] key in the target keyring"
+    arch-chroot "$WORK" pacman-key --add /etc/pacman.d/x-repo.pub >/dev/null ||
+        die "pacman-key --add failed in the staged rootfs"
+    arch-chroot "$WORK" pacman-key --lsign-key "$X_REPO_KEY_FPR" >/dev/null ||
+        die "pacman-key --lsign-key failed in the staged rootfs"
+
+    log "installing the X Linux identity (${X_WSL_PACKAGES[*]})"
+    arch-chroot "$WORK" pacman -Sy --noconfirm --needed "${X_WSL_PACKAGES[@]}" ||
+        die "could not install ${X_WSL_PACKAGES[*]} from [x]"
+
+    if ! grep -q '^PRETTY_NAME="X Linux"' "$WORK/usr/lib/os-release"; then
+        die "x-release was installed but /usr/lib/os-release is not X Linux"
+    fi
+    log "  -> /usr/lib/os-release reports X Linux"
+else
+    warn "X_WSL_BRANDING=0: skipping the [x] repository and x-release (the distro will report itself as Arch Linux)"
+fi
+
+# 6. Drop the package cache to keep the tarball small.
 log "cleaning pacman package cache"
 find "$WORK/var/cache/pacman/pkg" -mindepth 1 -delete 2>/dev/null || true
 
-# 6. Pack the tarball. Preserve ownership (numeric, root) and skip ACLs and
+# 7. Pack the tarball. Preserve ownership (numeric, root) and skip ACLs and
 #    xattrs: WSL imports a plain root-owned tar with no extended attributes.
 log "packing ${TARBALL}"
 tar -C "$WORK" \
@@ -236,6 +332,7 @@ cat <<SUMMARY
   Size    : ${TARBALL_SIZE}
   SHA256  : ${SUM}
             (also saved to ${SHA_FILE})
+  Identity: $([[ "$X_WSL_BRANDING" == "1" ]] && printf 'X Linux (x-release from [x])' || printf 'Arch Linux (X_WSL_BRANDING=0)')
 
 Import it from PowerShell (copy the tarball to a Windows path first).
 The Windows-side installer install.ps1 does this check + import for you:

@@ -18,10 +18,11 @@ Windows producen una distribucion corriendo y aprovisionada:
   ----------------           ----------------     ----------------
   1. build-rootfs.sh         2. install.ps1       3. install.sh (root)
      pacstrap de un rootfs      wsl --import         fase de sistema:
-     Arch minimo, con un         --version 2          locale, keymap,
-     /etc/wsl.conf inicial       (WSL 2)              zona horaria,
-     (systemd activo, [user]     wsl --set-default    herramientas,
-     default=root, [time])                            usuario con sudo;
+     Arch minimo + identidad     --version 2          locale, keymap,
+     X (x-release desde [x]),    (WSL 2)              zona horaria,
+     con /etc/wsl.conf inicial   wsl --set-default    herramientas, usuario
+     (systemd activo, [user]                          con sudo, [x] +
+     default=root, [time])                            x-release si falta;
                                                       fija [user] default
                                   4. exit, relanza       5. install.sh (usuario)
                                                                   fase de usuario:
@@ -103,6 +104,25 @@ por usuario para no requerir permisos de administrador. Los pasos equivalentes
 de `install.ps1` son los comandos manuales de `docs/en/import.md`. En caso de
 exito ejecuta `wsl --set-default <Nombre>` (opcional) e imprime los siguientes
 pasos para el setup de `equislinux/wsl-scripts`.
+
+## Identidad X Linux
+
+El rootfs se genera desde los repositorios oficiales de Arch, asi que por si
+solo se reportaria como Arch Linux (`/usr/lib/os-release` lo aporta el paquete
+`filesystem`). `build-rootfs.sh` cierra ese hueco: anade el repositorio firmado
+`[x]` a `/etc/pacman.conf` (clave fijada por huella) e instala `x-release`, el
+paquete que posee `/usr/lib/os-release` y los hooks de branding.
+
+`x-release` es `arch=('any')` y su hook de GRUB solo actua cuando existe
+`/etc/default/grub`, asi que el rootfs headless queda limpio; los fondos viven
+en el paquete aparte `x-wallpapers`, que WSL no instala (optdepend). Como `[x]`
+queda habilitado, un `pacman -Syu` normal mantiene la identidad y expone el
+resto de paquetes de X. `X_WSL_BRANDING=0` omite la capa para builds offline o
+personalizados (la distribucion vuelve a reportarse como Arch Linux).
+
+Para distribuciones importadas antes de esto, la fase de sistema de
+`wsl-scripts` aplica los mismos pasos (`x_repo_enable` + `pacman -S x-release`),
+sin necesidad de reconstruir el tarball.
 
 ## Notas de build
 
